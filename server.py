@@ -26,7 +26,7 @@ class ClientProtocol(asyncio.Protocol):
             for exist_client in self.server.clients:
                 if exist_client.login == new_login:
                     self.transport.write(f"Логин {new_login} занят, попробуйте другой\n".encode())
-                    exist_client.close()
+                    self.transport.close()
                     break
             else:
                 self.login = new_login
@@ -64,14 +64,17 @@ class Server:
         self.history_storage = deque()
 
     def send_history(self, transport: transports.Transport):
-        transport.write(f"\033[36mLast {len(self.history_storage)} message(s):\033[0m\n".encode())
-        for msg in self.history_storage:
-            transport.write(f"{msg}\n".encode())
+        msg_count = len(self.history_storage)
+
+        if msg_count > 0:
+            transport.write(f"\033[36mLast {msg_count} message(s):\033[0m\n".encode())
+            for msg in self.history_storage:
+                transport.write(f"{msg}\n".encode())
 
         transport.write("\033[36m↓↓↓↓↓ New messages ↓↓↓↓↓\033[0m\n".encode())
 
     def append_to_history(self, msg):
-        if (len(self.history_storage) > 10):
+        if (len(self.history_storage) > 9):
             self.history_storage.popleft()
 
         msg = msg.replace("\n", "\033[33m↵\033[0m");
